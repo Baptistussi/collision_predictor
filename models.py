@@ -2,6 +2,7 @@ import math
 import random
 import numpy as np
 from dataclasses import dataclass
+from kalman import CarSystemKF
 
 import pygame
 from pygame.locals import *
@@ -56,21 +57,21 @@ class Car(GameObject):
     max_accel: float = 0.5
     max_steering_angle: float = math.pi / 4
     
-    def __init__(self, *args, scale=10, color=None, **kwargs):
+    def __init__(self, *args, scale=10, **kwargs):
         super().__init__(*args, **kwargs)
         color = random.choice(self.color_options)
         self.img = pygame.image.load(f"assets/{color}_car.png").convert_alpha()
         self.img = pygame.transform.scale(self.img, (3*scale, 5*scale))
-        
-        if color is None:
-            color = (random.randint(0,255), random.randint(0,255), random.randint(0,255))
-        self.color = color
+
+    @property
+    def size(self):
+        return self.img.get_size()
     
     def draw_sprite(self, surface):
         rot_img = pygame.transform.rotate(self.img, math.degrees(-self.rotation_angle - math.pi/2))
         surface.blit(rot_img, (
-                                    self.position.x - self.img.get_size()[0]/2,
-                                    self.position.y - self.img.get_size()[1]/2,
+                                    self.position.x - self.size[0]/2,
+                                    self.position.y - self.size[1]/2,
                                 ) )
     
     def control(self, direction: str):        
@@ -124,3 +125,39 @@ class ObjectSensor:
 
         #print(f"{measured_position}, {velocity}, {accel}")
         return measured_position, velocity, accel
+
+
+class CarManager:
+    def __init__(self, scale, window_size, randomize=False, interval=1/20, measurement_noise=5):
+        self.kf_center = None
+        self.kf_rect = None
+
+        if randomize:
+            position = Vector2(random.randint(1, window_size[0]),
+                               random.randint(1, window_size[1]))
+            velocity = Vector2(0, 0)
+            accel = 1
+            steering_angle = random.random() * 2 * math.pi
+        else:
+            position = Vector2(500, 500)
+            velocity = Vector2(0, 0)
+            accel = 0
+            steering_angle = 0
+
+        self.car = Car(position, velocity, accel=accel, steering_angle=steering_angle, scale=scale)
+        self.sensor = ObjectSensor(self.car, measurement_noise=measurement_noise)
+        self.kalman_filter = CarSystemKF(self.car, dt=interval)
+
+    def update(self):
+        self.car.update()
+        measure = self.sensor.measure()
+        mean, var = self.kalman_filter.update(measure)
+
+        # Make Kalman Filter result representation:
+        kf_center = (mean[0][0], mean[3][0])
+        kf_var = (var[0][0] * 30, var[3][3] * 30)
+        self.kf_rect = (kf_center[0] - kf_var[0] / 2, kf_center[1] - kf_var[1] / 2, kf_var[0], kf_var[1])
+        self.kf_center = (kf_center[0], kf_center[1])
+
+        return self.kf_center, self.kf_rect
+

@@ -1,6 +1,5 @@
 import numpy as np
 from numpy.linalg import inv
-from models import Car
 
 
 class KalmanFilter:
@@ -48,9 +47,8 @@ class KalmanFilter:
 
     def update(self, zt, predicted_mean, predicted_sigma):
         # calculation
-        print('here')
         den = inv(self.C @ predicted_sigma @ self.C.transpose() + self.R)
-        print(den)
+        # print(den)
         Kt = (predicted_sigma @ self.C.transpose()) * den
         updated_mean = predicted_mean + Kt @ (zt - self.C @ predicted_mean)
         updated_sigma = (np.identity(self.dimension) - Kt @ self.C) @ predicted_sigma
@@ -67,8 +65,8 @@ class KalmanFilter:
 
 
 class CarSystemKF:
-    def __init__(self, car_object: Car, dt: float = 1):
-        self.car = car_object
+    def __init__(self, car_object, dt: float = 1):
+        # self.car = car_object
         self.started = False
 
         # Kalman Filter parameters:
@@ -82,15 +80,8 @@ class CarSystemKF:
         )
         B = np.array([0, 0, 1, 0, 0, 1])  # control effects acceleration, basically
         C = np.identity(n=6)
-        Q = np.ones((6, 6))*500
-        R = np.array(
-            [[1, 2, 3, 1, 2, 3],
-             [4, 5, 6, 1, 1, 1],
-             [7, 8, 9, 1, 1, 1],
-             [1, 1, 1, 11, 11, 12],
-             [1, 1, 1, 13, 14, 15],
-             [1, 1, 1, 16, 17, 18]]
-        )
+        Q = np.ones((6, 6))
+        R = np.ones((6, 6))
         self.kf = KalmanFilter(A, B, C, Q, R)
 
         # initialize sigma
