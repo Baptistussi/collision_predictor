@@ -3,13 +3,14 @@ import time
 import math
 import pygame
 import random
-from models import CarManager, Vector2
 
+from models.Environment import Environment
 from pygame.locals import *
 
 
 class Game:
     def __init__(self):
+        self.env = Environment(game=self, n_cars=10)
         self.windowSize = (1200, 800)
         self.interval = 1./20
         self.scale = 8
@@ -22,12 +23,6 @@ class Game:
             K_q: lambda: sys.exit()
         }
         self.frame = 0
-
-        # Car models' variables:
-        self.N_CARS = 10
-        self.car_mngs = None
-        self.cars_kf_repr = None
-
         pygame.init()
     
     def setup(self):
@@ -36,16 +31,16 @@ class Game:
         self.SCREEN = pygame.display.get_surface()
         # pygame.key.set_repeat(200, 200)
         pygame.display.update()
-        self.car_mngs = [CarManager(self.scale, self.windowSize, randomize=True) for _ in range(self.N_CARS)]
+        self.env.spawn_cars()
 
-    def update_all(self):
-        self.cars_kf_repr = [car_mng.update() for car_mng in self.car_mngs]
+    def update(self):
+        self.env.update_all()
 
-    def draw_all(self):
-        for car_mng in self.car_mngs:
+    def draw(self):
+        for car_mng in self.env.car_mngs:
             car_mng.car.draw_sprite(self.SCREEN)
 
-        for car_kf_repr in self.cars_kf_repr:
+        for car_kf_repr in self.env.cars_kf_repr:
             kf_center, kf_rect = car_kf_repr
             # pygame.draw.circle(self.SCREEN, (255, 0, 0), self.sensor.last_position, 3)
             pygame.draw.circle(self.SCREEN, (0, 0, 255), kf_center, 3)
@@ -77,10 +72,10 @@ class Game:
                 self.SCREEN.fill((200, 200, 200))
 
                 if self.frame % 10 == 0:
-                    self.car_mngs.append(CarManager(self.scale, self.windowSize, randomize=True))
+                    self.env.spawn_cars(1)
 
-                self.update_all()
-                self.draw_all()
+                self.update()
+                self.draw()
                 pygame.display.update()
                 self.last_refresh_time = now
 
