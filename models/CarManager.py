@@ -1,4 +1,5 @@
 import math
+import time
 import random
 import numpy as np
 from dataclasses import dataclass
@@ -59,14 +60,36 @@ class Car(GameObject):
     
     def __init__(self, *args, scale=10, **kwargs):
         super().__init__(*args, **kwargs)
+        self.crashed = False
+        self.crashed_time = None
+        self.scale = scale
         color = random.choice(self.color_options)
         self.img = pygame.image.load(f"assets/{color}_car.png").convert_alpha()
         self.img = pygame.transform.scale(self.img, (3*scale, 5*scale))
 
+    def __repr__(self):
+        return f"{self.edges}"
+
     @property
     def size(self):
         return self.img.get_size()
-    
+
+    @property
+    def edges(self):
+        return (
+            (self.position.x - self.size[0] / 2, self.position.y - self.size[1] / 2),
+            (self.position.x - self.size[0] / 2, self.position.y + self.size[1] / 2),
+            (self.position.x + self.size[0] / 2, self.position.y - self.size[1] / 2),
+            (self.position.x + self.size[0] / 2, self.position.y + self.size[1] / 2),
+        )
+
+    @property
+    def edges_split(self):
+        return (
+            (self.position.x + self.size[0] / 2, self.position.x - self.size[0] / 2),
+            (self.position.y + self.size[1] / 2, self.position.y - self.size[1] / 2)
+        )
+
     def draw_sprite(self, surface):
         rot_img = pygame.transform.rotate(self.img, math.degrees(-self.rotation_angle - math.pi/2))
         surface.blit(rot_img, (
@@ -93,6 +116,14 @@ class Car(GameObject):
             self.steering_angle += self.steering_vel
         elif direction == 'LEFT':
             self.steering_angle -= self.steering_vel
+
+    def update_collision(self):
+        if not self.crashed:
+            self.crashed = True
+            self.crashed_time = time.time()
+            self.img = pygame.image.load(f"assets/crash.png").convert_alpha()
+            self.img = pygame.transform.scale(self.img, (8 * self.scale, 8 * self.scale))
+
 
 
 class ObjectSensor:
@@ -128,13 +159,14 @@ class ObjectSensor:
 
 
 class CarManager:
-    def __init__(self, scale, window_size, randomize=False, interval=1/20, measurement_noise=5):
+    def __init__(self, env, randomize=False, interval=1/20, measurement_noise=5):
+        self.env = env
         self.kf_center = None
         self.kf_rect = None
 
         if randomize:
-            position = Vector2(random.randint(1, window_size[0]),
-                               random.randint(1, window_size[1]))
+            position = Vector2(random.randint(1, env.game.windowSize[0]),
+                               random.randint(1, env.game.windowSize[1]))
             velocity = Vector2(0, 0)
             accel = 1
             steering_angle = random.random() * 2 * math.pi
@@ -144,11 +176,24 @@ class CarManager:
             accel = 0
             steering_angle = 0
 
-        self.car = Car(position, velocity, accel=accel, steering_angle=steering_angle, scale=scale)
+        self.car = Car(position, velocity, accel=accel, steering_angle=steering_angle, scale=env.game.scale)
         self.sensor = ObjectSensor(self.car, measurement_noise=measurement_noise)
         self.kalman_filter = CarSystemKF(self.car, dt=interval)
 
     def update(self):
+        # check for collision
+        if self.car.crashed and time.time() - self.car.crashed_time > 0.4:
+            self.delete()
+
+        # check for leaving the window
+        car_edges_x = self.car.edges_split[0]
+        car_edges_y = self.car.edges_split[1]
+        if max(car_edges_x) < 0 or \
+                min(car_edges_x) > self.env.game.windowSize[0] or \
+                max(car_edges_y) < 0 or \
+                min(car_edges_y) > self.env.game.windowSize[1]:
+            self.delete()
+
         self.car.update()
         measure = self.sensor.measure()
         mean, var = self.kalman_filter.update(measure)
@@ -161,3 +206,6 @@ class CarManager:
 
         return self.kf_center, self.kf_rect
 
+    def delete(self):
+        self.env.alive_cars_count -= 1
+        self.env.car_mngs.remove(self)

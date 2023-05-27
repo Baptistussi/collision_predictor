@@ -10,7 +10,7 @@ from pygame.locals import *
 
 class Game:
     def __init__(self):
-        self.env = Environment(game=self, n_cars=10)
+        self.env = Environment(game=self, target_n_cars=10)
         self.windowSize = (1200, 800)
         self.interval = 1./20
         self.scale = 8
@@ -72,7 +72,10 @@ class Game:
                 self.SCREEN.fill((200, 200, 200))
 
                 if self.frame % 10 == 0:
-                    self.env.spawn_cars(1)
+                    self.env.spawn_cars()
+
+                if self.frame % 100 == 0:
+                    self.env.get_report()
 
                 self.update()
                 self.draw()
