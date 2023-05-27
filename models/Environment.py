@@ -12,13 +12,15 @@ class Environment:
         self.total_cars_count = 0
         self.collision_count = 0
     
-    def spawn_cars(self, n_cars=None):
+    def spawn_cars(self, n_cars=None, **kwargs):
         if n_cars is None:
             n_cars = self.target_n_cars - self.alive_cars_count
 
+        if 'randomize' not in kwargs:
+            kwargs['randomize'] = True
+
         for _ in range(n_cars):
-            self.car_mngs.append(CarManager(env=self, randomize=True)
-                                 )
+            self.car_mngs.append(CarManager(env=self, **kwargs))
         self.alive_cars_count += n_cars
         self.total_cars_count += n_cars
 

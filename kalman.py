@@ -78,7 +78,7 @@ class CarSystemKF:
              [0, 0, 0, 0, 1, dt],
              [0, 0, 0, 0, 0, 1]]
         )
-        B = np.array([0, 0, 1, 0, 0, 1])  # control effects acceleration, basically
+        B = np.array([[0], [0], [1], [0], [0], [1]])  # control effects acceleration, basically
         C = np.identity(n=6)
         Q = np.ones((6, 6))
         R = np.ones((6, 6))
@@ -115,6 +115,6 @@ class CarSystemKF:
             # self.kf.last_sigma = mean @ mean.transpose()
             self.started = True
 
-        ut = np.zeros((6, 1))
+        ut = np.zeros((1, 1))
         return self.kf.step(ut, mean)
 

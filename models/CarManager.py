@@ -57,6 +57,8 @@ class Car(GameObject):
     steering_vel = 0.009
     max_accel: float = 0.5
     max_steering_angle: float = math.pi / 4
+
+
     
     def __init__(self, *args, scale=10, **kwargs):
         super().__init__(*args, **kwargs)
@@ -66,6 +68,13 @@ class Car(GameObject):
         color = random.choice(self.color_options)
         self.img = pygame.image.load(f"assets/{color}_car.png").convert_alpha()
         self.img = pygame.transform.scale(self.img, (3*scale, 5*scale))
+
+        self.controls = {
+            K_UP: lambda: self.control('UP'),
+            K_DOWN: lambda: self.control('DOWN'),
+            K_RIGHT: lambda: self.control('RIGHT'),
+            K_LEFT: lambda: self.control('LEFT')
+        }
 
     def __repr__(self):
         return f"{self.edges}"
@@ -208,4 +217,5 @@ class CarManager:
 
     def delete(self):
         self.env.alive_cars_count -= 1
-        self.env.car_mngs.remove(self)
+        if self in self.env.car_mngs:
+            self.env.car_mngs.remove(self)

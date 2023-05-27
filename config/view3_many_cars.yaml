@@ -1,0 +1,20 @@
+game:
+  windowSize: [1200, 800]
+  interval: 0.05
+  scale: 8
+  enable_control: False
+  show:
+    car: True
+    pos: True
+    vel: False
+    acc: False
+    kf_mean: False
+    kf_var: False
+
+sim:
+  target_n_cars: 10
+  spawn_frame_interval: 10
+  report_frame_interval: 100
+  measurement_noise: 5
+  randomize: True
+

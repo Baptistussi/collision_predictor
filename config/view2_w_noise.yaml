@@ -1,0 +1,9 @@
+game:
+  enable_control: True
+  show:
+    pos: True
+    vel: True
+    acc: True
+sim:
+  measurement_noise: 1
+
