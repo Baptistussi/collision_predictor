@@ -1,0 +1,11 @@
+game:
+  enable_control: False
+  show:
+    car: True
+    pos: True
+
+sim:
+  target_n_cars: 10
+  measurement_noise: 5
+  randomize: True
+

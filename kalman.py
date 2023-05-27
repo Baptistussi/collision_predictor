@@ -80,8 +80,8 @@ class CarSystemKF:
         )
         B = np.array([[0], [0], [1], [0], [0], [1]])  # control effects acceleration, basically
         C = np.identity(n=6)
-        Q = np.ones((6, 6))
         R = np.ones((6, 6))
+        Q = np.ones((6, 6))
         self.kf = KalmanFilter(A, B, C, Q, R)
 
         # initialize sigma
@@ -104,7 +104,6 @@ class CarSystemKF:
              [measured_vel[1]],
              [measured_acc[1]]]
         )
-        self.kf.last_mean = mean
         return mean
 
     def update(self, measure):
@@ -116,5 +115,7 @@ class CarSystemKF:
             self.started = True
 
         ut = np.zeros((1, 1))
-        return self.kf.step(ut, mean)
+        result = self.kf.step(ut, mean)
+        print(result)
+        return result
 
