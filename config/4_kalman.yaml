@@ -5,6 +5,6 @@ game:
     kf_mean: True
     kf_var: True
 sim:
-  measurement_noise: 0
-  randomize: True
+  measurement_noise: 10
+  randomize: False
 

@@ -57,8 +57,6 @@ class Car(GameObject):
     steering_vel = 0.009
     max_accel: float = 0.5
     max_steering_angle: float = math.pi / 4
-
-
     
     def __init__(self, *args, scale=10, **kwargs):
         super().__init__(*args, **kwargs)
@@ -134,12 +132,11 @@ class Car(GameObject):
             self.img = pygame.transform.scale(self.img, (8 * self.scale, 8 * self.scale))
 
 
-
 class ObjectSensor:
     def __init__(self, obj: GameObject, measurement_noise: float):
         self.obj = obj
         self.measurement_noise = measurement_noise
-        self.measurements = [np.array([0, 0]), np.array([0, 0]), np.array([0, 0])]
+        self.measurements = []
         self.last_position = np.array([0, 0])
         self.last_velocity = np.array([0, 0])
         self.last_acceleration = np.array([0, 0])
@@ -151,20 +148,30 @@ class ObjectSensor:
         measured_position = np.array([self.obj.position.x, self.obj.position.y] + noise)
 
         # remove the oldest measurement and add new
-        self.measurements.pop(0)
-        self.measurements.append(measured_position)
+        self.measurements.insert(0, measured_position)
+        if len(self.measurements) > 3:
+            self.measurements.pop(-1)
 
         # calculate velocity and acceleration
-        velocity = self.measurements[-2] - self.measurements[-3]
-        accel = velocity - self.last_velocity
+        velocity, accel = None, None
+        if len(self.measurements) >= 2:
+            velocity = self.measurements[0] - self.measurements[1]
+        if len(self.measurements) >= 3:
+            accel = velocity - self.last_velocity
 
-        # save state
+
+        # update state
         self.last_position = measured_position
-        self.last_velocity = velocity
-        self.last_acceleration = accel
+        if velocity is not None:
+            self.last_velocity = velocity
+        if accel is not None:
+            self.last_acceleration = accel
 
         #print(f"{measured_position}, {velocity}, {accel}")
-        return measured_position, velocity, accel
+        return self.last_position, self.last_velocity, self.last_acceleration
+
+    def get_last(self):
+        return self.last_position, self.last_velocity, self.last_acceleration
 
 
 class CarManager:
@@ -187,7 +194,7 @@ class CarManager:
 
         self.car = Car(position, velocity, accel=accel, steering_angle=steering_angle, scale=env.game.scale)
         self.sensor = ObjectSensor(self.car, measurement_noise=measurement_noise)
-        self.kalman_filter = CarSystemKF(self.car, dt=interval)
+        self.kalman_filter = CarSystemKF(self, dt=interval)
 
     def update(self):
         # check for collision

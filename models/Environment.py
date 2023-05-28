@@ -6,7 +6,7 @@ class Environment:
         self.game = game
         self.target_n_cars = target_n_cars
         self.car_mngs = list()
-        self.cars_kf_repr = None
+        self.cars_kf_repr = list()
         # Stats:
         self.alive_cars_count = 0
         self.total_cars_count = 0
@@ -15,7 +15,6 @@ class Environment:
     def spawn_cars(self, n_cars=None, **kwargs):
         if n_cars is None:
             n_cars = self.target_n_cars - self.alive_cars_count
-
         if 'randomize' not in kwargs:
             kwargs['randomize'] = True
 

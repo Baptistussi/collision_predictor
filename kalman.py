@@ -1,9 +1,9 @@
 import numpy as np
-from numpy.linalg import inv
+from numpy.linalg import inv, LinAlgError
 
 
 class KalmanFilter:
-    def __init__(self, A: np.array, B: np.array, C: np.array, Q: np.array, R: np.array):
+    def __init__(self, A: np.array, B: np.array, H: np.array, Q: np.array, R: np.array):
         '''
         :param A: Matrix that represents how the state evolves from t-1 to t, without control or noise
         :param B: Matrix that represents how the control changes the state from t-1 to t
@@ -14,7 +14,7 @@ class KalmanFilter:
         '''
         self.A: np.array = A
         self.B: np.array = B
-        self.C: np.array = C
+        self.H: np.array = H
         self.Q: np.array = Q
         self.R: np.array = R
 
@@ -42,20 +42,21 @@ class KalmanFilter:
         # actual calculation
         predicted_mean = self.A @  last_mean + self.B @ ut
         predicted_sigma = self.A @ last_sigma @ self.A.transpose() + self.Q
+        # print(f"predicted_mean:\n {predicted_mean}\n predicted_sigma:\n {predicted_sigma}")
 
         return predicted_mean, predicted_sigma
 
     def update(self, zt, predicted_mean, predicted_sigma):
         # calculation
-        den = inv(self.C @ predicted_sigma @ self.C.transpose() + self.R)
-        # print(den)
-        Kt = (predicted_sigma @ self.C.transpose()) * den
-        updated_mean = predicted_mean + Kt @ (zt - self.C @ predicted_mean)
-        updated_sigma = (np.identity(self.dimension) - Kt @ self.C) @ predicted_sigma
+        den = inv(self.H @ predicted_sigma @ self.H.transpose() + self.R)
+        Kt = predicted_sigma @ self.H.transpose() @ den
+        updated_mean = predicted_mean + Kt @ (zt - self.H @ predicted_mean)
+        updated_sigma = (np.identity(self.dimension) - Kt @ self.H) @ predicted_sigma
 
         # saving state for next run
         self.last_mean = updated_mean
         self.last_sigma = updated_sigma
+        # print(f"Kt:\n {Kt}\nupdated_mean:\n {updated_mean}\n updated_sigma:\n {updated_sigma}")
 
         return updated_mean, updated_sigma
 
@@ -65,9 +66,10 @@ class KalmanFilter:
 
 
 class CarSystemKF:
-    def __init__(self, car_object, dt: float = 1):
-        # self.car = car_object
+    def __init__(self, manager, dt: float = 1):
+        self.mng = manager
         self.started = False
+        mea = self.mng.sensor.measurement_noise
 
         # Kalman Filter parameters:
         A = np.array(
@@ -79,14 +81,24 @@ class CarSystemKF:
              [0, 0, 0, 0, 0, 1]]
         )
         B = np.array([[0], [0], [1], [0], [0], [1]])  # control effects acceleration, basically
-        C = np.identity(n=6)
-        R = np.ones((6, 6))
-        Q = np.ones((6, 6))
-        self.kf = KalmanFilter(A, B, C, Q, R)
+        H = np.identity(n=6)
+        P = np.array(
+                            [[1, 1, 1, 0, 0, 0],
+                             [1, 2, 3, 0, 0, 0],
+                             [1, 3, 6, 0, 0, 0],
+                             [0, 0, 0, 1, 1, 1],
+                             [0, 0, 0, 1, 2, 3],
+                             [0, 0, 0, 1, 3, 6]]
+        )
+        R = P * mea * dt
+        Q = P * dt * 2
+        # Q = np.zeros((6, 6))
+        self.kf = KalmanFilter(A, B, H, Q, R)
 
         # initialize sigma
         if not self.started:
-            initial_sigma = np.identity(6)
+            # initial_sigma = np.identity(6)
+            initial_sigma = P
             self.kf.last_sigma = initial_sigma
 
     def get_state_from_measure(self, measure):
@@ -111,11 +123,10 @@ class CarSystemKF:
 
         if not self.started:
             self.kf.last_mean = mean
-            # self.kf.last_sigma = mean @ mean.transpose()
             self.started = True
 
         ut = np.zeros((1, 1))
         result = self.kf.step(ut, mean)
-        print(result)
+
         return result
 

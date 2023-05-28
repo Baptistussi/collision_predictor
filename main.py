@@ -13,6 +13,7 @@ def update_configs(default: dict, custom: dict):
         else:
             default[k] = custom[k]
 
+
 def main():
     try:
         with open('config/default.yaml') as dcf:

@@ -21,6 +21,8 @@ class Game:
             K_q: lambda: sys.exit()
         }
         self.frame = 0
+        self.truth_history = []
+        self.kf_history = []
         pygame.init()
 
     def setup(self):
@@ -40,7 +42,9 @@ class Game:
             if self.config['game']['show']['car']:
                 car_mng.car.draw_sprite(self.SCREEN)
             if self.config['game']['show']['pos']:
-                pygame.draw.circle(self.SCREEN, (0, 0, 0), car_mng.sensor.last_position, 3)
+                self.truth_history.append(car_mng.sensor.last_position)
+                for point in self.truth_history:
+                    pygame.draw.circle(self.SCREEN, (0, 0, 0), point, 3)
             if self.config['game']['show']['vel']:
                 pygame.draw.line(self.SCREEN, (0, 0, 255), car_mng.car.position.get(),
                                  car_mng.car.position.get() +
@@ -53,7 +57,9 @@ class Game:
         for car_kf_repr in self.env.cars_kf_repr:
             kf_center, kf_rect = car_kf_repr
             if self.config['game']['show']['kf_mean']:
-                pygame.draw.circle(self.SCREEN, (0, 0, 255), kf_center, 3)
+                self.kf_history.append(kf_center)
+                for point in self.kf_history:
+                    pygame.draw.circle(self.SCREEN, (0, 0, 255), point, 3)
             if self.config['game']['show']['kf_var']:
                 pygame.draw.rect(self.SCREEN, (0, 0, 255), kf_rect, 3)
 
