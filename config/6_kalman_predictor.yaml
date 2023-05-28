@@ -5,6 +5,7 @@ game:
     kf_mean: True
     kf_var: True
 sim:
+  enable_collision_avoidance: True
   measurement_noise: 0.1
   randomize: False
 
