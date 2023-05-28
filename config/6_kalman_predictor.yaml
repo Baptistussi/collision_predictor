@@ -1,7 +1,7 @@
 game:
   enable_control: True
   show:
-    pos: True
+    pos: False
     kf_mean: True
     kf_var: True
 sim:

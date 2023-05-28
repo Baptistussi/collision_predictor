@@ -2,52 +2,13 @@ import math
 import time
 import random
 import numpy as np
-from dataclasses import dataclass
-from kalman import CarSystemKF
 
 import pygame
 from pygame.locals import *
 
-
-@dataclass
-class Vector2:
-    x: float = 0
-    y: float = 0
-    
-    def __repr__(self):
-        return self.x, self.y
-
-    def get(self):
-        return self.x, self.y
-    
-    @property
-    def abs(self):
-        return math.sqrt(self.x**2 + self.y**2)
-
-
-@dataclass
-class GameObject:
-    position: Vector2
-    velocity: Vector2
-    speed: float = 0
-    accel: float = 0
-    rotation_angle: float = 0
-    steering_angle: float = 0
-    friction_coef: float = 0.008
-    reverse: bool = False
-    
-    def update(self):
-        self.position.x += self.velocity.x
-        self.position.y += self.velocity.y
-        self.speed = self.velocity.abs * (-1 if self.reverse else 1)
-        self.speed += self.accel 
-        self.speed *= 1 - self.friction_coef
-        self.velocity.x = self.speed * math.cos(self.rotation_angle)
-        self.velocity.y = self.speed * math.sin(self.rotation_angle)
-        self.rotation_angle += self.steering_angle * self.speed
-        self.accel *= 0.9
-        self.steering_angle *= 0.7
-        #print(f"\r{self.accel:.3f}", end='')
+from kalman import CarSystemKF
+from models.Basics import GameObject, Vector2
+from models.Sensor import ObjectSensor
 
 
 class Car(GameObject):
@@ -130,48 +91,6 @@ class Car(GameObject):
             self.crashed_time = time.time()
             self.img = pygame.image.load(f"assets/crash.png").convert_alpha()
             self.img = pygame.transform.scale(self.img, (8 * self.scale, 8 * self.scale))
-
-
-class ObjectSensor:
-    def __init__(self, obj: GameObject, measurement_noise: float):
-        self.obj = obj
-        self.measurement_noise = measurement_noise
-        self.measurements = []
-        self.last_position = np.array([0, 0])
-        self.last_velocity = np.array([0, 0])
-        self.last_acceleration = np.array([0, 0])
-
-    def measure(self):
-        noise = np.array([np.random.normal(0, self.measurement_noise),
-                          np.random.normal(0, self.measurement_noise)])
-
-        measured_position = np.array([self.obj.position.x, self.obj.position.y] + noise)
-
-        # remove the oldest measurement and add new
-        self.measurements.insert(0, measured_position)
-        if len(self.measurements) > 3:
-            self.measurements.pop(-1)
-
-        # calculate velocity and acceleration
-        velocity, accel = None, None
-        if len(self.measurements) >= 2:
-            velocity = self.measurements[0] - self.measurements[1]
-        if len(self.measurements) >= 3:
-            accel = velocity - self.last_velocity
-
-
-        # update state
-        self.last_position = measured_position
-        if velocity is not None:
-            self.last_velocity = velocity
-        if accel is not None:
-            self.last_acceleration = accel
-
-        #print(f"{measured_position}, {velocity}, {accel}")
-        return self.last_position, self.last_velocity, self.last_acceleration
-
-    def get_last(self):
-        return self.last_position, self.last_velocity, self.last_acceleration
 
 
 class CarManager:
