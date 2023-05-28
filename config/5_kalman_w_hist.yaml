@@ -1,0 +1,9 @@
+game:
+  enable_control: True
+  show:
+    pos_hist: True
+    kf_mean_hist: True
+sim:
+  measurement_noise: 5
+  randomize: False
+

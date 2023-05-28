@@ -1,0 +1,12 @@
+game:
+  enable_control: True
+  show:
+    pos: True
+    vel: True
+    acc: True
+    vel_multiplier: 5
+    acc_multiplier: 15
+
+sim:
+  measurement_noise: 0
+
