@@ -12,6 +12,8 @@ game:
     acc_multiplier: 5
     kf_mean: False
     kf_var: False
+    pos_hist: False
+    kf_mean_hist: False
 
 sim:
   target_n_cars: 1

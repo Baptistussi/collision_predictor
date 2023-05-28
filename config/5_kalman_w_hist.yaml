@@ -1,9 +1,8 @@
 game:
   enable_control: True
   show:
-    pos: True
-    kf_mean: True
-    kf_var: True
+    pos_hist: True
+    kf_mean_hist: True
 sim:
   measurement_noise: 5
   randomize: False

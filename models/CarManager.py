@@ -215,14 +215,42 @@ class CarManager:
         mean, var = self.kalman_filter.update(measure)
 
         # Make Kalman Filter result representation:
-        kf_center = (mean[0][0], mean[3][0])
-        kf_var = (var[0][0] * 30, var[3][3] * 30)
-        self.kf_rect = (kf_center[0] - kf_var[0] / 2, kf_center[1] - kf_var[1] / 2, kf_var[0], kf_var[1])
-        self.kf_center = (kf_center[0], kf_center[1])
+        kf_repr = self.make_repr(mean, var)
 
-        return self.kf_center, self.kf_rect
+        return kf_repr
+
+    @staticmethod
+    def make_repr(mean, var, var_multiplier=30):
+        center = (mean[0][0], mean[3][0])
+        var = (var[0][0] * var_multiplier, var[3][3] * var_multiplier)
+        point = (center[0], center[1])
+        rect = (center[0] - var[0] / 2, center[1] - var[1] / 2, var[0], var[1])
+
+        return point, rect
 
     def delete(self):
         self.env.alive_cars_count -= 1
         if self in self.env.car_mngs:
             self.env.car_mngs.remove(self)
+
+
+class SelfDrivingCarManager(CarManager):
+    def __init__(self, *args, look_ahead_time: float = 10, **kwargs):
+        super().__init__(*args,  **kwargs)
+        '''
+        This Kalman Filter instance is set with a greater dt, thus it can make predictions of further ahead position
+        It's not used to update with current measures since that's already done by the regular Kalman Filter on the
+        parent object.
+        '''
+        self.predictor_kf: CarSystemKF = CarSystemKF(self, dt=look_ahead_time)  # this kf instance is set to predict
+
+    def update(self):
+        super().update()
+        ut = np.zeros((1, 1))
+        last_mean, last_sigma = self.kalman_filter.kf.last_mean, self.kalman_filter.kf.last_sigma
+        predicted_mean, predicted_sigma = self.predictor_kf.kf.predict(ut, last_mean=last_mean, last_sigma=last_sigma)
+
+        # Make predictor Kalman Filter result representation:
+        future_repr = self.make_repr(predicted_mean, predicted_sigma, 1)
+
+        return future_repr

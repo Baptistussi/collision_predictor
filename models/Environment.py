@@ -1,4 +1,4 @@
-from models.CarManager import CarManager
+from models.CarManager import CarManager, SelfDrivingCarManager
 
 
 class Environment:
@@ -20,6 +20,17 @@ class Environment:
 
         for _ in range(n_cars):
             self.car_mngs.append(CarManager(env=self, **kwargs))
+        self.alive_cars_count += n_cars
+        self.total_cars_count += n_cars
+
+    def spawn_sd_cars(self, n_cars=None, **kwargs):
+        if n_cars is None:
+            n_cars = self.target_n_cars - self.alive_cars_count
+        if 'randomize' not in kwargs:
+            kwargs['randomize'] = True
+
+        for _ in range(n_cars):
+            self.car_mngs.append(SelfDrivingCarManager(env=self, **kwargs))
         self.alive_cars_count += n_cars
         self.total_cars_count += n_cars
 

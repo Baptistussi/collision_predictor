@@ -21,6 +21,8 @@ class Game:
             K_q: lambda: sys.exit()
         }
         self.frame = 0
+        self.sensor_history = []
+        self.kf_history = []
         pygame.init()
 
     def setup(self):
@@ -41,6 +43,10 @@ class Game:
                 car_mng.car.draw_sprite(self.SCREEN)
             if self.config['game']['show']['pos']:
                 pygame.draw.circle(self.SCREEN, (0, 0, 0), car_mng.sensor.last_position, 3)
+            if self.config['game']['show']['kf_mean_hist']:
+                self.sensor_history.append(car_mng.sensor.last_position)
+                if len(self.sensor_history) > 2:
+                    pygame.draw.lines(self.SCREEN, (0, 0, 0), False, self.sensor_history, 3)
             if self.config['game']['show']['vel']:
                 pygame.draw.line(self.SCREEN, (0, 0, 255), car_mng.car.position.get(),
                                  car_mng.car.position.get() +
@@ -54,6 +60,10 @@ class Game:
             kf_center, kf_rect = car_kf_repr
             if self.config['game']['show']['kf_mean']:
                 pygame.draw.circle(self.SCREEN, (0, 0, 255), kf_center, 3)
+            if self.config['game']['show']['kf_mean_hist']:
+                self.kf_history.append(kf_center)
+                if len(self.kf_history) > 2:
+                    pygame.draw.lines(self.SCREEN, (0, 0, 255), False, self.kf_history, 3)
             if self.config['game']['show']['kf_var']:
                 pygame.draw.rect(self.SCREEN, (0, 0, 255), kf_rect, 3)
 
@@ -77,7 +87,9 @@ class Game:
                 self.SCREEN.fill((200, 200, 200))
 
                 if self.frame % self.config['sim']['spawn_frame_interval'] == 0:
-                    self.env.spawn_cars(measurement_noise=self.config['sim']['measurement_noise'],
+                    # self.env.spawn_cars(measurement_noise=self.config['sim']['measurement_noise'],
+                    #                     randomize=self.config['sim']['randomize'])
+                    self.env.spawn_sd_cars(measurement_noise=self.config['sim']['measurement_noise'],
                                         randomize=self.config['sim']['randomize'])
 
                 if self.frame % self.config['sim']['report_frame_interval'] == 0:

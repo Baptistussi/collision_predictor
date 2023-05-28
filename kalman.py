@@ -82,6 +82,7 @@ class CarSystemKF:
         )
         B = np.array([[0], [0], [1], [0], [0], [1]])  # control effects acceleration, basically
         H = np.identity(n=6)
+        # this covariance matrix come from experimentations with covariance_lab.py
         P = np.array(
                             [[1, 1, 1, 0, 0, 0],
                              [1, 2, 3, 0, 0, 0],
