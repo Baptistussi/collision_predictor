@@ -3,6 +3,7 @@ game:
   show:
     pos: False
 sim:
+  enable_collision_avoidance: True
   target_n_cars: 10
   measurement_noise: 0.1
   randomize: True

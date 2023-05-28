@@ -32,8 +32,6 @@ class Game:
         self.SCREEN = pygame.display.get_surface()
         pygame.key.set_repeat(200, 200)
         pygame.display.update()
-        # self.env.spawn_cars(measurement_noise=self.config['sim']['measurement_noise'],
-        #                     randomize=self.config['sim']['randomize'])
 
     def update(self):
         self.env.update_all()
@@ -88,10 +86,13 @@ class Game:
                 self.SCREEN.fill((200, 200, 200))
 
                 if self.frame % self.config['sim']['spawn_frame_interval'] == 0:
-                    # self.env.spawn_cars(measurement_noise=self.config['sim']['measurement_noise'],
-                    #                     randomize=self.config['sim']['randomize'])
-                    self.env.spawn_self_driving_cars(measurement_noise=self.config['sim']['measurement_noise'],
-                                                     randomize=self.config['sim']['randomize'])
+                    if self.config['sim']['enable_collision_avoidance']:
+                        self.env.spawn_self_driving_cars(measurement_noise=self.config['sim']['measurement_noise'],
+                                                         randomize=self.config['sim']['randomize'])
+                    else:
+                        self.env.spawn_cars(measurement_noise=self.config['sim']['measurement_noise'],
+                                            randomize=self.config['sim']['randomize'])
+
 
                 if self.frame % self.config['sim']['report_frame_interval'] == 0:
                     self.env.get_report()

@@ -16,6 +16,7 @@ game:
     kf_mean_hist: False
 
 sim:
+  enable_collision_avoidance: False
   target_n_cars: 1
   spawn_frame_interval: 10
   report_frame_interval: 100
