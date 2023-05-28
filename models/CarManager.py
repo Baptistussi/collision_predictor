@@ -7,7 +7,7 @@ import pygame
 from pygame.locals import *
 
 from kalman import CarSystemKF
-from models.Basics import GameObject, Vector2
+from models.Basics import GameObject, Vector2, segments_distance
 from models.Sensor import ObjectSensor
 
 
@@ -25,14 +25,20 @@ class Car(GameObject):
         self.crashed_time = None
         self.scale = scale
         color = random.choice(self.color_options)
+        # load car sprite
         self.img = pygame.image.load(f"assets/{color}_car.png").convert_alpha()
         self.img = pygame.transform.scale(self.img, (3*scale, 5*scale))
+        # load brake sprite
+        self.brake_sprite = pygame.image.load(f"assets/brake.png").convert_alpha()
+        self.brake_sprite = pygame.transform.scale(self.brake_sprite, (4*scale, 4*scale))
+        self.is_braking = False
 
         self.controls = {
             K_UP: lambda: self.control('UP'),
             K_DOWN: lambda: self.control('DOWN'),
             K_RIGHT: lambda: self.control('RIGHT'),
-            K_LEFT: lambda: self.control('LEFT')
+            K_LEFT: lambda: self.control('LEFT'),
+            K_b: lambda: self.control('BRAKE')
         }
 
     def __repr__(self):
@@ -64,26 +70,40 @@ class Car(GameObject):
                                     self.position.x - self.size[0]/2,
                                     self.position.y - self.size[1]/2,
                                 ) )
+        if self.is_braking:
+            self.draw_brake_symbol(surface)
+
+    def draw_brake_symbol(self, surface):
+        surface.blit(self.brake_sprite, (
+            self.position.x - self.size[0] / 2,
+            self.position.y - self.size[1] / 2,
+        ))
     
-    def control(self, direction: str):        
-        if direction == 'UP':
+    def control(self, command: str):
+        if command == 'UP':
             if self.speed > 0:
                 self.reverse = False
                 self.accel += self.accel_incr
             else:
                 self.accel += self.brake_accel
             self.accel = min(self.accel, self.max_accel)
-        elif direction == 'DOWN':
+        elif command == 'DOWN':
             if self.speed < 0:
                 self.reverse = True
                 self.accel -= self.accel_incr
             else:
                 self.accel -= self.brake_accel
             self.accel = max(self.accel, -self.max_accel)
-        elif direction == 'RIGHT':
+        elif command == 'RIGHT':
             self.steering_angle += self.steering_vel
-        elif direction == 'LEFT':
+        elif command == 'LEFT':
             self.steering_angle -= self.steering_vel
+        elif command == 'BRAKE':
+            self.is_braking = True
+            if self.speed > 0:
+                self.accel -= self.brake_accel
+            elif self.speed < 0:
+                self.accel += self.brake_accel
 
     def update_collision(self):
         if not self.crashed:
@@ -161,7 +181,8 @@ class SelfDrivingCarManager(CarManager):
         It's not used to update with current measures since that's already done by the regular Kalman Filter on the
         parent object.
         '''
-        self.predictor_kf: CarSystemKF = CarSystemKF(self, dt=look_ahead_time)  # this kf instance is set to predict
+        self.predictor_kf: CarSystemKF = CarSystemKF(self, dt=look_ahead_time)
+        self.future_position = None
 
     def update(self):
         super().update()
@@ -172,4 +193,50 @@ class SelfDrivingCarManager(CarManager):
         # Make predictor Kalman Filter result representation:
         future_repr = self.make_repr(predicted_mean, predicted_sigma, 1)
 
+        # Save state
+        self.future_position, _ = future_repr
+
+        # Check for collisions
+        collision = self.predict_collisions()
+        if collision:
+            self.car.control('BRAKE')
+        else:
+            self.car.is_braking = False
+
         return future_repr
+
+    def predict_collisions(self) -> bool:
+        '''
+            Predict collision between this car and other cars.
+            returns True if collision will happen, False if it won't
+        '''
+
+        # Check if this car already has a future position
+        if self.car.position is None or self.future_position is None:
+            return False
+
+        this_car_segment = (self.car.position.get(), self.future_position)
+
+        # TODO: Be more selective when picking other cars for this loop, e.g., segmenting the simulation space with
+        #  quad-trees
+        # Get all other cars in the environment
+        other_cars = self.env.car_mngs
+
+        # check for future collisions:
+        for other_car_mng in other_cars:
+            if other_car_mng is self:
+                continue
+
+            other_car_pos = other_car_mng.car.position
+            other_car_future_pos = other_car_mng.future_position
+
+            if other_car_pos is None or other_car_future_pos is None:
+                continue
+
+            other_car_segment = (other_car_pos.get(), other_car_future_pos)
+            collision = segments_distance(this_car_segment, other_car_segment) < max(self.car.size)
+            if collision:
+                # print(f"# REPORT FROM: {self}\n\town_segment: {this_car_segment}\n\tother_segment: {other_car_segment}\n\tother:{other_car_mng}")
+                return True
+
+        return False

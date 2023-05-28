@@ -18,6 +18,7 @@ class Game:
             K_DOWN: None,
             K_RIGHT: None,
             K_LEFT: None,
+            K_b: None,
             K_q: lambda: sys.exit()
         }
         self.frame = 0
@@ -89,8 +90,8 @@ class Game:
                 if self.frame % self.config['sim']['spawn_frame_interval'] == 0:
                     # self.env.spawn_cars(measurement_noise=self.config['sim']['measurement_noise'],
                     #                     randomize=self.config['sim']['randomize'])
-                    self.env.spawn_sd_cars(measurement_noise=self.config['sim']['measurement_noise'],
-                                        randomize=self.config['sim']['randomize'])
+                    self.env.spawn_self_driving_cars(measurement_noise=self.config['sim']['measurement_noise'],
+                                                     randomize=self.config['sim']['randomize'])
 
                 if self.frame % self.config['sim']['report_frame_interval'] == 0:
                     self.env.get_report()
@@ -99,4 +100,3 @@ class Game:
                 self.draw()
                 pygame.display.update()
                 self.last_refresh_time = now
-

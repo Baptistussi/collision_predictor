@@ -1,3 +1,4 @@
+from models.Basics import segments_distance, check_collision
 from models.CarManager import CarManager, SelfDrivingCarManager
 
 
@@ -23,7 +24,7 @@ class Environment:
         self.alive_cars_count += n_cars
         self.total_cars_count += n_cars
 
-    def spawn_sd_cars(self, n_cars=None, **kwargs):
+    def spawn_self_driving_cars(self, n_cars=None, **kwargs):
         if n_cars is None:
             n_cars = self.target_n_cars - self.alive_cars_count
         if 'randomize' not in kwargs:
@@ -35,28 +36,6 @@ class Environment:
         self.total_cars_count += n_cars
 
     def check_collisions(self):
-        def check_collision(car_a, car_b):
-            '''
-            Check if car_a and car_b are in collision.
-            Collision is detected when, on both x and y coordinates, the smallest point of the front car comes
-            before the biggest point of the back car.
-            '''
-            car_a_edges_x = car_a.edges_split[0]
-            car_a_edges_y = car_a.edges_split[1]
-            car_b_edges_x = car_b.edges_split[0]
-            car_b_edges_y = car_b.edges_split[1]
-
-            def assure_first_smallest(first, second):
-                if not min(first) < min(second):
-                    return second, first
-                else:
-                    return first, second
-
-            car_a_edges_x, car_b_edges_x = assure_first_smallest(car_a_edges_x, car_b_edges_x)
-            car_a_edges_y, car_b_edges_y = assure_first_smallest(car_a_edges_y, car_b_edges_y)
-
-            return max(car_a_edges_x) > min(car_b_edges_x) and max(car_a_edges_y) > min(car_b_edges_y)
-
         cars = [car_mng.car for car_mng in self.car_mngs]
         for i in range(len(cars)):
             for j in range(i+1, len(cars)):
